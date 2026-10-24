@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { createCourse, updateCourse, deleteCourse, getAllEnrollments, getAllAssignments } from "../../services/admin.api";
+import { logout } from "./authSlice";
 
 export const createCourseAsync = createAsyncThunk(
     "admin/createCourse",
@@ -68,6 +69,7 @@ const adminSlice = createSlice({
         assignments: [],
         loading: false,
         creating: false,
+        updating: false,
         error: null,
         success: null,
     },
@@ -93,10 +95,16 @@ const adminSlice = createSlice({
                 state.creating = false;
                 state.error = action.payload;
             })
+            .addCase(updateCourseAsync.pending, (state) => {
+                state.updating = true;
+                state.error = null;
+            })
             .addCase(updateCourseAsync.fulfilled, (state) => {
+                state.updating = false;
                 state.success = "Course updated successfully!";
             })
             .addCase(updateCourseAsync.rejected, (state, action) => {
+                state.updating = false;
                 state.error = action.payload;
             })
             .addCase(deleteCourseAsync.fulfilled, (state) => {
@@ -128,6 +136,12 @@ const adminSlice = createSlice({
             .addCase(fetchAssignments.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
+            })
+            .addCase(logout, (state) => {
+                state.enrollments = [];
+                state.assignments = [];
+                state.error = null;
+                state.success = null;
             });
     },
 });

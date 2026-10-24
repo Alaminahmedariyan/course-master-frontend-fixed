@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { enrollInCourse, getMyEnrollments, completeLesson } from "../../services/enrollment.api";
+import { logout } from "./authSlice";
 
 export const enrollCourseAsync = createAsyncThunk(
     "enrollment/enrollCourse",
@@ -81,8 +82,10 @@ const enrollmentSlice = createSlice({
             })
             .addCase(fetchMyEnrollments.fulfilled, (state, action) => {
                 state.loading = false;
-                // Code-6 bug: action.payload is the array, but trying to access .data makes it undefined
-                state.enrollments = action.payload.data;
+                // The API returns the array directly; fall back to .data just in case
+                state.enrollments = Array.isArray(action.payload)
+                    ? action.payload
+                    : action.payload?.data || [];
             })
             .addCase(fetchMyEnrollments.rejected, (state, action) => {
                 state.loading = false;
@@ -92,19 +95,21 @@ const enrollmentSlice = createSlice({
                 state.error = null;
             })
             .addCase(completeLessonAsync.fulfilled, (state, action) => {
-                state.success = "Lesson marked complete!";
+                // No success message here: it would trigger the enroll-success redirect
                 const updated = action.payload;
                 if (!updated) return;
                 const idx = state.enrollments.findIndex((e) => e._id === updated._id);
                 if (idx !== -1) {
                     state.enrollments[idx] = updated;
-                } else {
-                    // safe fallback
-                    state.enrollments.push(updated);
                 }
             })
             .addCase(completeLessonAsync.rejected, (state, action) => {
                 state.error = action.payload;
+            })
+            .addCase(logout, (state) => {
+                state.enrollments = [];
+                state.error = null;
+                state.success = null;
             });
     },
 });
