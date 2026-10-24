@@ -1,35 +1,36 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getToken } from "../utils/auth";
 import { getMe } from "../services/auth.api";
 
-export default function ProtectedRoute({ children }) {
-  const [isValid, setIsValid] = useState(null);
+export default function ProtectedRoute({ children, role }) {
+  const location = useLocation();
   const token = getToken();
+  const [me, setMe] = useState(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    // Check if dev bypass is enabled for testing/grading protected routes
-    const isBypass = localStorage.getItem("dev_bypass") === "true" || window.location.search.includes("bypass=true");
-    if (isBypass) {
-      setIsValid(true);
-      return;
-    }
+    if (!token) return;
+    let cancelled = false;
 
-    if (!token) {
-      setIsValid(false);
-      return;
-    }
-
-    // Verify token is valid
     getMe()
-      .then(() => setIsValid(true))
+      .then((res) => {
+        if (!cancelled) setMe(res.data);
+      })
       .catch(() => {
-        // Fallback: if token exists but network/server check fails, still allow if token exists
-        setIsValid(!!token);
+        if (!cancelled) setFailed(true);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [token]);
 
-  if (isValid === null) {
+  if (!token || failed) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (!me) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <span className="loading loading-spinner loading-lg"></span>
@@ -37,8 +38,8 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  if (!isValid) {
-    return <Navigate to="/login" replace />;
+  if (role && me.role !== role) {
+    return <Navigate to={me.role === "admin" ? "/admin" : "/student"} replace />;
   }
 
   return children;
