@@ -1,16 +1,23 @@
-import { useState } from "react";
-import { loginUser } from "../../services/auth.api";
-import { saveToken } from "../../utils/auth";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { loginAsync, clearError } from "../../store/slices/authSlice";
 import { Mail, Lock, Eye, EyeOff, LogIn, Sparkles, ShieldCheck, UserCheck } from "lucide-react";
 
 export default function Login() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const dispatch = useDispatch();
+    const { error } = useSelector((state) => state.auth);
 
     const [form, setForm] = useState({ email: "", password: "" });
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+
+    // Clear any stale error when the page opens
+    useEffect(() => {
+        dispatch(clearError());
+    }, [dispatch]);
 
     const handleChange = (e) =>
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -21,26 +28,22 @@ export default function Login() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        try {
-            setLoading(true);
-            setError(null);
+        if (loading) return;
+        setLoading(true);
 
-            const res = await loginUser(form);
-            saveToken(res.data.token);
+        const result = await dispatch(loginAsync(form));
+        setLoading(false);
 
-            navigate("/");
-            window.location.reload();
-        } catch (err) {
-            setError(err.response?.data?.message || "Login failed. Please check your credentials.");
-        } finally {
-            setLoading(false);
+        if (loginAsync.fulfilled.match(result)) {
+            const role = result.payload.user?.role;
+            const from = location.state?.from?.pathname;
+            navigate(from || (role === "admin" ? "/admin" : "/student"), { replace: true });
         }
     };
 
     return (
         <div className="max-w-lg mx-auto px-4 py-10">
             <div className="card bg-base-100/90 backdrop-blur border border-base-300 shadow-2xl relative overflow-hidden">
-                {/* Decorative background glow */}
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
                 <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-secondary/20 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -57,7 +60,6 @@ export default function Login() {
                         </p>
                     </div>
 
-                    {/* Quick Demo Credentials Assistant */}
                     <div className="mb-6 p-4 rounded-2xl bg-base-200/80 border border-base-300 space-y-3">
                         <div className="flex justify-between items-center">
                             <p className="text-xs font-bold text-base-content/80 flex items-center gap-1.5">
@@ -81,43 +83,6 @@ export default function Login() {
                                 <UserCheck className="w-3 h-3" /> Student Fill
                             </button>
                         </div>
-
-                        {/* Dev Route Inspector Bypass */}
-                        <div className="pt-2 border-t border-base-300/80">
-                            <p className="text-[11px] font-semibold text-base-content/70 mb-1.5 flex items-center justify-between">
-                                <span>🔓 Direct Login & Inspect Routes (Dev Bypass):</span>
-                            </p>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYzFmMzdlNjYwMDZmMWRjYmI1YjUyNiIsInJvbGUiOiJzdHVkZW50IiwiaWF0IjoxNzkxMDk4NTg4fQ.4s3Ygh9GtTper2SB8byNILxPSxZ8y3pO-WyFupmQ0Ws";
-                                        localStorage.setItem("token", token);
-                                        localStorage.setItem("user_token", token);
-                                        localStorage.setItem("dev_bypass", "true");
-                                        navigate("/student");
-                                        window.location.reload();
-                                    }}
-                                    className="btn btn-xs btn-primary font-bold text-xs"
-                                >
-                                    🎓 Student Portal
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYzFmMzdlNjYwMDZmMWRjYmI1YjUyNSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc5MTA5ODU4OH0.vL3Hj-fEGVbouM-cZ9RtMIpaCU5ugRwsNqaKyYdxdNY";
-                                        localStorage.setItem("token", token);
-                                        localStorage.setItem("user_token", token);
-                                        localStorage.setItem("dev_bypass", "true");
-                                        navigate("/admin");
-                                        window.location.reload();
-                                    }}
-                                    className="btn btn-xs btn-secondary font-bold text-xs"
-                                >
-                                    👑 Admin Portal
-                                </button>
-                            </div>
-                        </div>
                     </div>
 
                     {error && (
@@ -133,17 +98,15 @@ export default function Login() {
                                     <Mail className="w-4 h-4 text-primary" /> Email Address
                                 </span>
                             </label>
-                            <div className="relative">
-                                <input
-                                    name="email"
-                                    type="email"
-                                    value={form.email}
-                                    onChange={handleChange}
-                                    placeholder="admin@coursemaster.com"
-                                    className="input input-bordered w-full focus:input-primary pl-4 pr-4"
-                                    required
-                                />
-                            </div>
+                            <input
+                                name="email"
+                                type="email"
+                                value={form.email}
+                                onChange={handleChange}
+                                placeholder="admin@coursemaster.com"
+                                className="input input-bordered w-full focus:input-primary pl-4 pr-4"
+                                required
+                            />
                         </div>
 
                         <div className="form-control">
@@ -158,7 +121,7 @@ export default function Login() {
                                     type={showPassword ? "text" : "password"}
                                     value={form.password}
                                     onChange={handleChange}
-                                    placeholder="••••••••"
+                                    placeholder="Enter your password"
                                     className="input input-bordered w-full focus:input-primary pl-4 pr-10"
                                     required
                                 />
@@ -166,6 +129,7 @@ export default function Login() {
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="absolute right-3 text-base-content/50 hover:text-base-content"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
                                 >
                                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
