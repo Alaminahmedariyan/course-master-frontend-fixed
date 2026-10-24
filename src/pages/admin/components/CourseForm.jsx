@@ -120,7 +120,9 @@ export default function CourseForm({
     const toggleLiveClass = (mi, li) =>
         changeLesson(mi, li, (l) => {
             if (l.liveClassLink !== undefined) {
-                const { liveClassLink, liveClassDate, ...rest } = l;
+                const rest = { ...l };
+                delete rest.liveClassLink;
+                delete rest.liveClassDate;
                 return rest;
             }
             return { ...l, liveClassLink: "", liveClassDate: "" };
@@ -129,7 +131,8 @@ export default function CourseForm({
     const toggleAssignment = (mi, li) =>
         changeLesson(mi, li, (l) => {
             if (l.assignmentPrompt !== undefined) {
-                const { assignmentPrompt, ...rest } = l;
+                const rest = { ...l };
+                delete rest.assignmentPrompt;
                 return rest;
             }
             return { ...l, assignmentPrompt: "" };

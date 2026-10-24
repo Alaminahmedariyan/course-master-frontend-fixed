@@ -11,31 +11,35 @@ export default function CoursesPreview() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        let cancelled = false;
+
         const fetchCourses = async () => {
             try {
                 setLoading(true);
                 setError(null);
 
-                // Fetch only 6 courses for preview
+                // Fetch only 6 courses for the preview
                 const res = await getCourses({ page: 1, limit: 6 });
-                setCourses(res.data.courses || []);
-            } catch (err) {
-                setError("Failed to load courses");
+                if (!cancelled) setCourses(res.data.courses || []);
+            } catch {
+                if (!cancelled) setError("Failed to load courses");
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
 
         fetchCourses();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     return (
         <div className="space-y-6 sm:space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 className="page-heading mb-2">
-                        Featured Courses
-                    </h2>
+                    <h2 className="page-heading mb-2">Featured Courses</h2>
                     <p className="text-base-content/70 text-sm sm:text-base">
                         Discover our most popular courses and start your learning journey today
                     </p>
@@ -76,17 +80,11 @@ export default function CoursesPreview() {
                     <CoursesGrid courses={courses} />
                     <div className="flex justify-center gap-3 pt-4">
                         {user?.role === "admin" ? (
-                            <Link
-                                to="/admin/courses"
-                                className="btn btn-primary btn-wide"
-                            >
+                            <Link to="/admin/courses" className="btn btn-primary btn-wide">
                                 Manage Courses
                             </Link>
                         ) : (
-                            <Link
-                                to="/courses"
-                                className="btn btn-outline btn-wide"
-                            >
+                            <Link to="/courses" className="btn btn-outline btn-wide">
                                 View More Courses
                             </Link>
                         )}
@@ -96,4 +94,3 @@ export default function CoursesPreview() {
         </div>
     );
 }
-
