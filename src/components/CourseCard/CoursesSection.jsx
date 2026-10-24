@@ -6,6 +6,18 @@ import CoursesFilters from "./CoursesFilters";
 import CoursesGrid from "./CoursesGrid";
 import CoursesPagination from "./CoursesPagination";
 
+// Delays a fast-changing value so typing does not fire a request per keystroke
+function useDebounce(value, delay = 500) {
+    const [debounced, setDebounced] = useState(value);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebounced(value), delay);
+        return () => clearTimeout(timer);
+    }, [value, delay]);
+
+    return debounced;
+}
+
 export default function CoursesSection() {
     const { user } = useSelector((state) => state.auth);
     const [courses, setCourses] = useState([]);
@@ -13,66 +25,72 @@ export default function CoursesSection() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // query states
+    const limit = 8;
     const [page, setPage] = useState(1);
-    const [limit] = useState(8);
     const [search, setSearch] = useState("");
     const [sort, setSort] = useState("");
     const [category, setCategory] = useState("");
     const [tags, setTags] = useState("");
 
-    const fetchCourses = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            const params = {
-                page,
-                limit,
-                search: search || undefined,
-                sort: sort || undefined,
-                category: category || undefined,
-                tags: tags || undefined,
-            };
-
-            const res = await getCourses(params);
-            setCourses(res.data.courses || []);
-            setTotalPages(res.data.totalPages || 1);
-        } catch (err) {
-            setError("Failed to load courses");
-        } finally {
-            setLoading(false);
-        }
-    };
+    const debouncedSearch = useDebounce(search);
+    const debouncedCategory = useDebounce(category);
+    const debouncedTags = useDebounce(tags);
 
     useEffect(() => {
+        let cancelled = false;
+
+        const fetchCourses = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const res = await getCourses({
+                    page,
+                    limit,
+                    search: debouncedSearch.trim() || undefined,
+                    sort: sort || undefined,
+                    category: debouncedCategory.trim() || undefined,
+                    tags: debouncedTags.trim() || undefined,
+                });
+
+                if (cancelled) return;
+                setCourses(res.data.courses || []);
+                setTotalPages(res.data.totalPages || 1);
+            } catch {
+                if (!cancelled) setError("Failed to load courses");
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        };
+
         fetchCourses();
-        // eslint-disable-next-line
-    }, [page, sort, category, tags]);
+
+        // Ignore results of outdated requests
+        return () => {
+            cancelled = true;
+        };
+    }, [page, sort, debouncedSearch, debouncedCategory, debouncedTags]);
+
+    // Go back to page 1 whenever a filter changes
+    const withPageReset = (setter) => (value) => {
+        setter(value);
+        setPage(1);
+    };
 
     const onSearchSubmit = (e) => {
         e.preventDefault();
-        setPage(1);
-        fetchCourses();
     };
-
-    // reset page when filters change
-    useEffect(() => {
-        setPage(1);
-    }, [sort, category, tags]);
 
     return (
         <div className="space-y-6">
-
             <CoursesFilters
-                search={search} setSearch={setSearch}
-                sort={sort} setSort={setSort}
-                category={category} setCategory={setCategory}
-                tags={tags} setTags={setTags}
+                search={search} setSearch={withPageReset(setSearch)}
+                sort={sort} setSort={withPageReset(setSort)}
+                category={category} setCategory={withPageReset(setCategory)}
+                tags={tags} setTags={withPageReset(setTags)}
                 onSearchSubmit={onSearchSubmit}
             />
 
-            {/* states */}
             {loading && (
                 <div className="flex justify-center py-10">
                     <span className="loading loading-spinner loading-lg"></span>
@@ -87,25 +105,17 @@ export default function CoursesSection() {
 
             {!loading && !error && courses.length === 0 && (
                 <div className="rounded-xl border border-primary/20 bg-base-200 p-6 text-center">
-                    <h3 className="text-lg font-semibold text-primary">
-                        No courses found
-                    </h3>
-                    <p className="mt-1 text-base-content/70">
-                        Try adjusting your search or filters.
-                    </p>
+                    <h3 className="text-lg font-semibold text-primary">No courses found</h3>
+                    <p className="mt-1 text-base-content/70">Try adjusting your search or filters.</p>
                 </div>
             )}
-
 
             {!loading && !error && courses.length > 0 && (
                 <>
                     <CoursesGrid courses={courses} />
                     {user?.role === "admin" && (
                         <div className="flex justify-center pt-4">
-                            <Link
-                                to="/admin/courses"
-                                className="btn btn-primary btn-wide"
-                            >
+                            <Link to="/admin/courses" className="btn btn-primary btn-wide">
                                 Manage Courses
                             </Link>
                         </div>
@@ -113,11 +123,7 @@ export default function CoursesSection() {
                 </>
             )}
 
-            <CoursesPagination
-                page={page}
-                totalPages={totalPages}
-                setPage={setPage}
-            />
+            <CoursesPagination page={page} totalPages={totalPages} setPage={setPage} />
         </div>
     );
 }
