@@ -32,12 +32,15 @@ export default function AdminSidebar() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const renderItems = (onClick) =>
-        menuItems.map(({ to, label}) => (
-            <NavLink key={to} to={to} end onClick={onClick} className={linkClass}>
-                <Icon className="w-5 h-5 shrink-0" />
-                <span className="text-sm sm:text-base">{label}</span>
-            </NavLink>
-        ));
+        menuItems.map((item) => {
+            const Icon = item.Icon; // Linter-er jonno safe approach
+            return (
+                <NavLink key={item.to} to={item.to} end onClick={onClick} className={linkClass}>
+                    <Icon className="w-5 h-5 shrink-0" />
+                    <span className="text-sm sm:text-base">{item.label}</span>
+                </NavLink>
+            );
+        });
 
     return (
         <>

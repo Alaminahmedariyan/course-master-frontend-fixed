@@ -49,7 +49,7 @@ export default function App() {
           <Route
             path="/student"
             element={
-              <ProtectedRoute role="admin">
+              <ProtectedRoute>
                 <Suspense fallback={<LoadingSpinner />}>
                   <StudentDashboard />
                 </Suspense>
@@ -61,7 +61,7 @@ export default function App() {
           <Route
             path="/courses/:id/player"
             element={
-              <ProtectedRoute role="admin">
+              <ProtectedRoute>
                 <Suspense fallback={<LoadingSpinner />}>
                   <CoursePlayer />
                 </Suspense>
@@ -69,7 +69,7 @@ export default function App() {
             }
           />
 
-          {/* admin dashboard with nested routes (protected) */}
+          {/* admin dashboard with nested routes (protected, admin only) */}
           <Route
             path="/admin"
             element={
