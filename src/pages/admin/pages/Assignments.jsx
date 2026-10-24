@@ -344,7 +344,7 @@ export default function Assignments() {
                                                 </a>
                                             ) : (
                                                 <span className="text-xs truncate block" title={assign.answer}>
-                                                    📄 {assign.answer.substring(0, 30)}...
+                                                    📄 {(assign.answer || "").substring(0, 30)}...
                                                 </span>
                                             )}
                                         </td>

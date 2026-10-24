@@ -157,7 +157,7 @@ export default function Analytics() {
                         <h3 className="text-sm sm:text-base font-semibold mb-2">Platform Statistics</h3>
                         <div className="space-y-2 text-xs sm:text-sm">
                             <div className="flex justify-between">
-                                <span>Total Instructors:</span>
+                                <span>Total Admins:</span>
                                 <span className="font-bold">{data.stats.totalInstructors}</span>
                             </div>
                             <div className="flex justify-between">

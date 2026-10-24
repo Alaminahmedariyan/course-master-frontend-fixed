@@ -59,7 +59,7 @@ export default function AdminOverview() {
             value: enrollments.length,
             colorClass: "bg-gradient-to-br from-primary to-primary/80 text-primary-content",
             icon: <Users className="w-8 h-8" />,
-            trend: "+12%",
+            trend: null,
         },
         {
             title: "Pending Assignments",
