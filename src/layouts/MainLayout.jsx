@@ -8,19 +8,20 @@ import { fetchMyEnrollments } from "../store/slices/enrollmentSlice";
 
 export default function MainLayout() {
     const dispatch = useDispatch();
-    const { token, isAuthenticated } = useSelector((state) => state.auth);
+    const { token, user } = useSelector((state) => state.auth);
 
+    // Load the profile whenever a token exists but the user is not loaded yet
     useEffect(() => {
-        if (token && !isAuthenticated) {
+        if (token && !user) {
             dispatch(getMeAsync());
         }
-    }, [token, isAuthenticated, dispatch]);
+    }, [token, user, dispatch]);
 
     useEffect(() => {
-        if (isAuthenticated) {
+        if (token) {
             dispatch(fetchMyEnrollments());
         }
-    }, [isAuthenticated, dispatch]);
+    }, [token, dispatch]);
 
     return (
         <div className="min-h-screen flex flex-col">
